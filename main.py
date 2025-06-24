@@ -13,11 +13,6 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 
 
-# ────────────────────── Umleitung zur index.html ─────────────────────
-@app.get("/")
-def root():
-    return RedirectResponse(url="/static/index.html")
-
 # ─────────────────────── Konfiguration einlesen ──────────────────────
 import shutil
 
@@ -123,6 +118,10 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# Umleitung von / zur index.html
+@app.get("/")
+def root():
+    return RedirectResponse(url="/static/index.html")
 
 @app.post("/api/add", response_model=JobStatus)
 async def api_add(job: AddJob):
