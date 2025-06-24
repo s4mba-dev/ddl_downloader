@@ -53,14 +53,13 @@ def load_plugins():
 
 
 def resolve_direct_link(url: str) -> str:
-    """
-    Iteriert über alle Plug‑ins und gibt ersten gültigen direct‑URL zurück.
-    Bei Fehler: HTTPException 400.
-    """
+    if "ddownload.com" in url or "ddl.to" in url:
+        if not API_KEY:
+            raise HTTPException(status_code=403, detail="Missing API key for ddownload.com")
     for plugin in PLUGIN_REGISTRY.values():
         if plugin.match(url):
             return plugin.resolve(url, API_KEY)
-    raise HTTPException(status_code=400, detail="Kein Plug‑in für diese URL")
+    raise HTTPException(status_code=400, detail="No matching plugin found for URL")
 
 
 load_plugins()
@@ -125,7 +124,20 @@ def root():
 
 @app.post("/api/add", response_model=JobStatus)
 async def api_add(job: AddJob):
-    direct_url = resolve_direct_link(job.url)
+    try:
+        direct_url = resolve_direct_link(job.url)
+    except HTTPException as e:
+        return JobStatus(
+            id="error",
+            filename="–",
+            size=0,
+            downloaded=0,
+            speed=0.0,
+            eta="–",
+            complete=False,
+            failed=True,
+            msg=str(e.detail),
+        )
     job_id = uuid.uuid4().hex
     status = JobStatus(
         id=job_id,
