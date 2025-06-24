@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8"/><title>Downloader</title></head>
+<body>
+<h1>DDownload Downloader</h1>
+<form id="form">
+  <input type="url" id="url" placeholder="Download-Link" required>
+  <input type="text" id="pw" placeholder="Passwort (optional)">
+  <input type="text" id="pkg" placeholder="Paketname (optional)">
+  <button type="submit">Download starten</button>
+</form>
+<pre id="log"></pre>
+<script>
+const ws = new WebSocket("ws://" + location.host + "/ws");
+ws.onmessage = e => document.getElementById("log").textContent = JSON.stringify(JSON.parse(e.data), null, 2);
+document.getElementById("form").onsubmit = async e => {
+  e.preventDefault();
+  const res = await fetch("/api/add", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      url: document.getElementById("url").value,
+      password: document.getElementById("pw").value,
+      package: document.getElementById("pkg").value
+    })
+  });
+  const json = await res.json();
+  alert("Download gestartet: " + json.filename);
+};
+</script>
+</body></html>
