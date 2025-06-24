@@ -85,14 +85,12 @@ class JobStatus(BaseModel):
 
 
 # ────────────────────────── FastAPI‑Setup ─────────────────────────────
-app = FastAPI()
-app.mount("/static", StaticFiles(directory="static"), name="static")
+from contextlib import asynccontextmanager
 
 active_jobs: Dict[str, JobStatus] = {}
 finished_jobs: Dict[str, JobStatus] = {}
 
 ws_clients: List[WebSocket] = []
-
 
 async def broadcast_updates():
     while True:
@@ -110,10 +108,13 @@ async def broadcast_updates():
         ws_clients[:] = living
         await asyncio.sleep(1)
 
-
-@app.on_event("startup")
-async def _startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     asyncio.create_task(broadcast_updates())
+    yield  # optional shutdown logic here
+
+app = FastAPI(lifespan=lifespan)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 @app.post("/api/add", response_model=JobStatus)
