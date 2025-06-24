@@ -9,7 +9,14 @@ import aiohttp, aiofiles, uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
+
+
+# ────────────────────── Umleitung zur index.html ─────────────────────
+@app.get("/")
+def root():
+    return RedirectResponse(url="/static/index.html")
 
 # ─────────────────────── Konfiguration einlesen ──────────────────────
 import shutil
