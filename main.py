@@ -12,11 +12,21 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 # ─────────────────────── Konfiguration einlesen ──────────────────────
-CONFIG_PATH = pathlib.Path("config.yaml")
+import shutil
+
+CONFIG_PATH = pathlib.Path.home() / ".config" / "ddl_downloader" / "config.yaml"
+
+# Falls die Datei nicht existiert: Hinweis + Vorlage kopieren (wenn vorhanden)
 if not CONFIG_PATH.exists():
-    raise SystemExit(
-        "config.yaml fehlt. Bitte anhand des Beispiels anlegen und anpassen."
-    )
+    print(f"⚠️  Konfigurationsdatei fehlt: {CONFIG_PATH}")
+    fallback = pathlib.Path(__file__).parent / "config.example.yaml"
+    if fallback.exists():
+        CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(fallback, CONFIG_PATH)
+        print("📄 Beispielkonfiguration wurde automatisch kopiert.")
+    raise SystemExit("Bitte config.yaml anpassen und erneut starten.")
+
+# Config laden
 CFG = yaml.safe_load(CONFIG_PATH.read_text())
 
 DOWNLOAD_DIR = pathlib.Path(CFG.get("download_dir", "downloads")).expanduser()
