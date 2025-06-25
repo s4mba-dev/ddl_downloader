@@ -1,30 +1,25 @@
 # DDownload Downloader
 
-A lightweight segmented downloader with live web UI and plugin support – optimized for low-resource environments like Termux, Proot, or WSL2.
+A lightweight segmented downloader with plugin system and real-time web UI.  
+Supports ddownload.com and is optimized for low-resource environments like Termux, Debian or WSL2.
 
 ## Features
 
-- Supports ddownload.com (via plugin)
-- Segment-based downloading (parallel chunking)
-- Minimalistic real-time web interface (HTML+JS, no frontend framework)
-- Archive password input
-- Plugin system for future hosters
-- Configurable via `config.yaml`
+- Direct download from ddownload.com via Premium API key
+- Chunked/parallel downloading with configurable segment size
+- Simple real-time Web UI (no frontend framework)
+- Plugin support for future hosts
+- Config file in `~/.config/ddl_downloader/config.yaml`
 
 ## Requirements
 
-- Python 3.11+ (+ pyvenv & pip)
-- Linux, Termux, Debian, WSL2 or similar
+- Python 3.11 or higher
+- Recommended environments: Debian, Termux, WSL2, or com.android.virtualization.terminal
 
-## Usage
+### ⚠️ Note for `com.android.virtualization.terminal` users
+
+1. You must install Python + pip manually:
 
 ```bash
-git clone https://github.com/s4mba-dev/ddl_downloader.git
-cd ddl_downloader
-python3.11 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python main.py
-```
-
-Then open http://localhost:8000/static/ in your browser.
+sudo apt update
+sudo apt install -y python3.11 python3.11-venv python3-pip curl
