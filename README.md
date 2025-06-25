@@ -13,7 +13,7 @@ A lightweight segmented downloader with live web UI and plugin support – optim
 
 ## Requirements
 
-- Python 3.11+
+- Python 3.11+ (+ pyvenv & pip)
 - Linux, Termux, Debian, WSL2 or similar
 
 ## Usage
