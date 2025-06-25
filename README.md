@@ -1,62 +1,79 @@
 # DDownload Downloader
 
-A lightweight segmented downloader with plugin system and real-time web UI.
-Supports ddownload.com and is optimized for low-resource environments like Termux, Debian or WSL2.
+A lightweight segmented downloader with real-time web interface and plugin support.  
+Designed for low-resource environments such as Termux, Debian, or WSL2.
 
 ## Features
 
-- Direct download from ddownload.com via Premium API key
-- Chunked/parallel downloading with configurable segment size
-- Simple real-time Web UI (no frontend framework)
-- Plugin support for future hosts
-- Config file in `~/.config/ddl_downloader/config.yaml`
+- Direct file downloads from ddownload.com using a Premium API key
+- Parallel and segmented downloading with adjustable chunk size
+- Minimal, real-time web UI (no frontend framework dependencies)
+- Plugin architecture for future hoster support
+- Configuration via YAML file: `~/.config/ddl_downloader/config.yaml`
 
 ## Requirements
 
 - Python 3.11 or higher
-- Recommended environments: Debian, Termux, WSL2, or com.android.virtualization.terminal
+- Recommended environments:
+  - Debian
+  - Termux (Android)
+  - WSL2
+  - `com.android.virtualization.terminal` (Pixel 8 and similar)
 
-### ⚠️ Note for `com.android.virtualization.terminal` users
+### Special Instructions for `com.android.virtualization.terminal`
 
-1. You must install Python + pip manually:
+1. Install Python and pip manually:
 
-       sudo apt update
-       sudo apt install -y python3.11 python3.11-venv python3-pip curl
+   ```bash
+   sudo apt update
+   sudo apt install -y python3.11 python3.11-venv python3-pip curl
+   ```
 
-2. Then create and activate your virtual environment:
+2. Create and activate a virtual environment:
 
-       python3.11 -m venv .venv
-       source .venv/bin/activate
+   ```bash
+   python3.11 -m venv .venv
+   source .venv/bin/activate
+   ```
 
-3. If `pip` does not work in the venv, bootstrap it manually:
+3. If `pip` does not work inside the virtual environment, bootstrap it manually:
 
-       curl -sS https://bootstrap.pypa.io/get-pip.py | python
+   ```bash
+   curl -sS https://bootstrap.pypa.io/get-pip.py | python
+   ```
 
-Now you're ready to install project requirements.
+Once the virtual environment is ready, you can install the required dependencies.
 
 ## Setup
 
-       pip install -r requirements.txt
-       python main.py
+```bash
+pip install -r requirements.txt
+python main.py
+```
 
-Then open http://localhost:8000/static/index.html in your browser to use the Web UI.
+Then open the following URL in your browser to use the web interface:  
+[http://localhost:8000/static/index.html](http://localhost:8000/static/index.html)
 
 ## Configuration
 
-Create or edit the following file:
+Create or edit the file at:
 
-       ~/.config/ddl_downloader/config.yaml
+```bash
+~/.config/ddl_downloader/config.yaml
+```
 
-Example:
+Example configuration:
 
-       download_dir: "~/downloads"
-       segment_size: 8388608
-       max_concurrency: 6
-       listen_host: 0.0.0.0
-       listen_port: 8000
-       ui_language: "en"
-       ddownload_api_key: "your-api-key-here"
+```yaml
+download_dir: "~/downloads"
+segment_size: 8388608
+max_concurrency: 6
+listen_host: 0.0.0.0
+listen_port: 8000
+ui_language: "en"
+ddownload_api_key: "your-api-key-here"
+```
 
 ## License
 
-MIT License
+This project is licensed under the MIT License.
