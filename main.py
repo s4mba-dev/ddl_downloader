@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # main.py
 # ---------------------------------------------------------------------
-# Schlanker, segmentierter Downloader mit Web‑API & Live‑GUI
+# Lightweight segmented downloader with Web API & live GUI
 # ---------------------------------------------------------------------
 import asyncio, math, pathlib, shutil, uuid, yaml, time
 from typing import List, Dict, Optional
@@ -13,33 +13,33 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 
 
-# ─────────────────────── Konfiguration einlesen ──────────────────────
+# ─────────────────────── Load configuration ──────────────────────
 import shutil
 
 CONFIG_PATH = pathlib.Path.home() / ".config" / "ddl_downloader" / "config.yaml"
 
-# Falls die Datei nicht existiert: Hinweis + Vorlage kopieren (wenn vorhanden)
+# If config file is missing: show warning + copy template if available
 if not CONFIG_PATH.exists():
-    print(f"⚠️  Konfigurationsdatei fehlt: {CONFIG_PATH}")
+    print(f"⚠️  Configuration file missing: {CONFIG_PATH}")
     fallback = pathlib.Path(__file__).parent / "config.example.yaml"
     if fallback.exists():
         CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy(fallback, CONFIG_PATH)
-        print("📄 Beispielkonfiguration wurde automatisch kopiert.")
-    raise SystemExit("Bitte config.yaml anpassen und erneut starten.")
+        print("📄 Example configuration was copied automatically.")
+    raise SystemExit("Please edit config.yaml and restart the application.")
 
-# Config laden
+# Load config
 CFG = yaml.safe_load(CONFIG_PATH.read_text())
 
 DOWNLOAD_DIR = pathlib.Path(CFG.get("download_dir", "downloads")).expanduser()
 DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-SEGMENT_SIZE = CFG.get("segment_size", 8 * 1024 * 1024)  # 8 MiB
+SEGMENT_SIZE = CFG.get("segment_size", 8 * 1024 * 1024)  # 8 MiB
 MAX_CONCURRENCY = CFG.get("max_concurrency", 6)
 API_KEY = CFG.get("ddownload_api_key", "")
 LANG = CFG.get("ui_language", "en")
 
-# ─────────────────────────── Plug‑in‑System ───────────────────────────
+# ─────────────────────────── Plugin system ───────────────────────────
 import importlib, pkgutil
 
 PLUGIN_REGISTRY = {}
@@ -66,11 +66,9 @@ load_plugins()
 
 # ───────────────────────── Models / DTOs ──────────────────────────────
 class AddJob(BaseModel):
-    url: str = Field(..., description="Download‑Link (Seiten‑ oder Direkt‑URL)")
-    password: Optional[str] = Field(
-        None, description="Archiv‑/Rar‑Passwort (optional)"
-    )
-    package: Optional[str] = Field(None, description="Paketname (optional)")
+    url: str = Field(..., description="Download link (page or direct URL)")
+    password: Optional[str] = Field(None, description="Archive/RAR password (optional)")
+    package: Optional[str] = Field(None, description="Package name (optional)")
 
 
 class JobStatus(BaseModel):
@@ -85,7 +83,7 @@ class JobStatus(BaseModel):
     msg: str = ""
 
 
-# ────────────────────────── FastAPI‑Setup ─────────────────────────────
+# ────────────────────────── FastAPI setup ─────────────────────────────
 from contextlib import asynccontextmanager
 
 active_jobs: Dict[str, JobStatus] = {}
@@ -117,7 +115,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Umleitung von / zur index.html
+# Redirect / to index.html
 @app.get("/")
 def root():
     return RedirectResponse(url="/static/index.html")
@@ -167,7 +165,7 @@ async def websocket_endpoint(ws: WebSocket):
     ws_clients.append(ws)
     try:
         while True:
-            await ws.receive_text()  # Ping/Pong o. Ä.
+            await ws.receive_text()  # ping/pong or similar
     except WebSocketDisconnect:
         ws_clients.remove(ws)
 
@@ -177,19 +175,17 @@ def serve_file(file_path: str):
     fp = DOWNLOAD_DIR / file_path
     if fp.exists():
         return FileResponse(fp)
-    raise HTTPException(404, "Datei nicht gefunden")
+    raise HTTPException(404, "File not found")
 
 
-# ───────────────────── Segmentierter Downloader ──────────────────────
+# ───────────────────── Segmented downloader ──────────────────────
 async def download_worker(job_id: str, url: str, password: str | None):
     session_timeout = aiohttp.ClientTimeout(total=None, sock_connect=30, sock_read=300)
     async with aiohttp.ClientSession(timeout=session_timeout) as session:
-        # HEAD – Dateigröße ermitteln
+        # HEAD request to get file size
         async with session.head(url, allow_redirects=True) as r:
             size = int(r.headers.get("Content-Length", "0"))
-            filename = (
-                pathlib.Path(r.url.path).name or f"{job_id}.bin"
-            )  # Fallback Name
+            filename = pathlib.Path(r.url.path).name or f"{job_id}.bin"  # fallback name
         status = active_jobs[job_id]
         status.filename = filename
         status.size = size
@@ -206,7 +202,7 @@ async def download_worker(job_id: str, url: str, password: str | None):
             async with sem:
                 async with session.get(url, headers=headers) as resp:
                     if resp.status not in (200, 206):
-                        raise IOError(f"Status {resp.status} für Segment {idx}")
+                        raise IOError(f"Status {resp.status} for segment {idx}")
                     async with aiofiles.open(tmp_path, "wb") as f:
                         async for chunk in resp.content.iter_chunked(128 * 1024):
                             await f.write(chunk)
@@ -220,30 +216,24 @@ async def download_worker(job_id: str, url: str, password: str | None):
             tasks.append(asyncio.create_task(fetch_part(idx, start, end)))
             offset += SEGMENT_SIZE
 
-        # Geschwindigkeit / ETA ermitteln
+        # Calculate speed and ETA
         start_time = time.perf_counter()
         while any(not t.done() for t in tasks):
             await asyncio.sleep(1)
             elapsed = time.perf_counter() - start_time
             status.speed = status.downloaded / elapsed
             remaining = size - status.downloaded
-            status.eta = (
-                f"{int(remaining / status.speed)} s"
-                if status.speed > 0
-                else "–"
-            )
+            status.eta = f"{int(remaining / status.speed)} s" if status.speed > 0 else "–"
 
-        # Prüfen auf Fehler
+        # Check for errors
         if any(t.exception() for t in tasks):
             status.failed = True
-            status.msg = "; ".join(
-                str(t.exception()) for t in tasks if t.exception()
-            )
+            status.msg = "; ".join(str(t.exception()) for t in tasks if t.exception())
             finished_jobs[job_id] = status
             active_jobs.pop(job_id, None)
             return
 
-        # Zusammenführen
+        # Merge segments
         final_path = DOWNLOAD_DIR / filename
         with open(final_path, "wb") as dest:
             for pf in sorted(part_files):
@@ -262,4 +252,3 @@ async def download_worker(job_id: str, url: str, password: str | None):
 # ────────────────────────────── Runner ────────────────────────────────
 if __name__ == "__main__":
     uvicorn.run("main:app", host=CFG.get("listen_host", "0.0.0.0"), port=CFG.get("listen_port", 8000))
-
