@@ -43,8 +43,6 @@ Its minimalist web interface (no JavaScript frameworks) and modular plugin archi
 ---
 
 ## Installation
-
-### Debian / Ubuntu / WSL2
 ```bash
 sudo apt update
 sudo apt install -y python3.11 python3.11-venv python3-pip
